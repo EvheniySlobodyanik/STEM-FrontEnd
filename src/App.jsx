@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Header } from './components/Header';
-import { FilterBar } from './components/FilterBar';
-import { ServerCard } from './components/ServerCard';
-import { ServerDetails } from './components/ServerDetails';
-import { EventLogFeed } from './components/EventLogFeed';
-import { INITIAL_SERVERS, INITIAL_LOGS } from './data/mockServers';
-import { SERVER_STATUSES } from './constants/serverConfig';
+import React, { useState, useEffect, useMemo } from "react";
+import { Header } from "./components/Header";
+import { FilterBar } from "./components/FilterBar";
+import { ServerCard } from "./components/ServerCard";
+import { ServerDetails } from "./components/ServerDetails";
+import { EventLogFeed } from "./components/EventLogFeed";
+import { INITIAL_SERVERS, INITIAL_LOGS } from "./data/mockServers";
+import { SERVER_STATUSES } from "./constants/serverConfig";
 
 export function App() {
   const [servers, setServers] = useState(INITIAL_SERVERS);
   const [logs, setLogs] = useState(INITIAL_LOGS);
-  const [selectedServerId, setSelectedServerId] = useState('srv-eu-01');
-  const [selectedRegion, setSelectedRegion] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedServerId, setSelectedServerId] = useState("srv-eu-01");
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [criticalOnly, setCriticalOnly] = useState(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState(true);
   const [restartingServerId, setRestartingServerId] = useState(null);
@@ -34,30 +34,43 @@ export function App() {
           const pingDelta = (Math.random() - 0.5) * 3;
           const playerDelta = Math.floor((Math.random() - 0.48) * 8);
 
-          let newCpu = Math.min(100, Math.max(5, Math.round(server.cpuUsage + cpuDelta)));
+          let newCpu = Math.min(
+            100,
+            Math.max(5, Math.round(server.cpuUsage + cpuDelta)),
+          );
           let newPing = Math.max(10, Math.round(server.ping + pingDelta));
-          let newPlayers = Math.min(server.maxPlayers, Math.max(0, server.playersOnline + playerDelta));
+          let newPlayers = Math.min(
+            server.maxPlayers,
+            Math.max(0, server.playersOnline + playerDelta),
+          );
 
           // Перерахунок статусу деградації якщо навантаження критичне
           let newStatus = server.status;
           if (server.status !== SERVER_STATUSES.MAINTENANCE) {
             if (newCpu > 85 || newPing > 150) {
               newStatus = SERVER_STATUSES.DEGRADED;
-            } else if (newCpu < 75 && newPing < 120 && server.status === SERVER_STATUSES.DEGRADED) {
+            } else if (
+              newCpu < 75 &&
+              newPing < 120 &&
+              server.status === SERVER_STATUSES.DEGRADED
+            ) {
               newStatus = SERVER_STATUSES.ONLINE;
             }
           }
 
           // Оновлюємо історію для графіків
           const now = new Date();
-          const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-          
+          const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+
           const newHistoryPoint = {
             time: timeStr,
             cpu: newCpu,
             ping: newPing,
             players: newPlayers,
-            tickRate: newStatus === SERVER_STATUSES.DEGRADED ? Number((server.targetTickRate * 0.88).toFixed(1)) : server.targetTickRate,
+            tickRate:
+              newStatus === SERVER_STATUSES.DEGRADED
+                ? Number((server.targetTickRate * 0.88).toFixed(1))
+                : server.targetTickRate,
           };
 
           const updatedHistory = [...server.history.slice(-7), newHistoryPoint];
@@ -70,7 +83,7 @@ export function App() {
             status: newStatus,
             history: updatedHistory,
           };
-        })
+        }),
       );
     }, 3500);
 
@@ -81,19 +94,23 @@ export function App() {
   const filteredServers = useMemo(() => {
     return servers.filter((server) => {
       // Фільтр регіону
-      if (selectedRegion !== 'all' && server.region !== selectedRegion) {
+      if (selectedRegion !== "all" && server.region !== selectedRegion) {
         return false;
       }
       // Фільтр статусу
-      if (statusFilter !== 'all' && server.status !== statusFilter) {
+      if (statusFilter !== "all" && server.status !== statusFilter) {
         return false;
       }
       // Фільтр тільки критичних (MTTR фокус)
-      if (criticalOnly && server.status !== SERVER_STATUSES.DEGRADED && server.status !== SERVER_STATUSES.OFFLINE) {
+      if (
+        criticalOnly &&
+        server.status !== SERVER_STATUSES.DEGRADED &&
+        server.status !== SERVER_STATUSES.OFFLINE
+      ) {
         return false;
       }
       // Текстовий пошук за ім'ям або IP
-      if (searchQuery.trim() !== '') {
+      if (searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase();
         const matchesName = server.name.toLowerCase().includes(query);
         const matchesIp = server.ip.toLowerCase().includes(query);
@@ -117,11 +134,11 @@ export function App() {
 
     // Додаємо лог про початок перезапуску
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('uk-UA');
+    const timeStr = now.toLocaleTimeString("uk-UA");
     const newLog = {
       id: `log-${Date.now()}`,
       timestamp: timeStr,
-      level: 'WARNING',
+      level: "WARNING",
       serverId: target.id,
       serverName: target.name,
       message: `Ініційовано диспетчерський перезапуск вузла. Скидання мережевих сокетів та перезапуск daemon-процесу.`,
@@ -142,15 +159,15 @@ export function App() {
             packetLoss: 0.0,
             tickRate: s.targetTickRate,
           };
-        })
+        }),
       );
       setRestartingServerId(null);
 
       // Лог про успішний старт
       const successLog = {
         id: `log-${Date.now()}-done`,
-        timestamp: new Date().toLocaleTimeString('uk-UA'),
-        level: 'INFO',
+        timestamp: new Date().toLocaleTimeString("uk-UA"),
+        level: "INFO",
         serverId: target.id,
         serverName: target.name,
         message: `Вузол успішно перезапущено. Всі системні сервіси працюють у штатному режимі (ONLINE).`,
@@ -165,7 +182,9 @@ export function App() {
     if (!target) return;
 
     const nextStatus =
-      target.status === SERVER_STATUSES.MAINTENANCE ? SERVER_STATUSES.ONLINE : SERVER_STATUSES.MAINTENANCE;
+      target.status === SERVER_STATUSES.MAINTENANCE
+        ? SERVER_STATUSES.ONLINE
+        : SERVER_STATUSES.MAINTENANCE;
 
     setServers((prev) =>
       prev.map((s) => {
@@ -173,15 +192,18 @@ export function App() {
         return {
           ...s,
           status: nextStatus,
-          playersOnline: nextStatus === SERVER_STATUSES.MAINTENANCE ? 0 : Math.round(s.maxPlayers * 0.5),
+          playersOnline:
+            nextStatus === SERVER_STATUSES.MAINTENANCE
+              ? 0
+              : Math.round(s.maxPlayers * 0.5),
         };
-      })
+      }),
     );
 
     const logEntry = {
       id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString('uk-UA'),
-      level: nextStatus === SERVER_STATUSES.MAINTENANCE ? 'WARNING' : 'INFO',
+      timestamp: new Date().toLocaleTimeString("uk-UA"),
+      level: nextStatus === SERVER_STATUSES.MAINTENANCE ? "WARNING" : "INFO",
       serverId: target.id,
       serverName: target.name,
       message:
@@ -204,19 +226,21 @@ export function App() {
         if (s.id !== id) return s;
         return {
           ...s,
-          status: isNowOffline ? SERVER_STATUSES.OFFLINE : SERVER_STATUSES.ONLINE,
+          status: isNowOffline
+            ? SERVER_STATUSES.OFFLINE
+            : SERVER_STATUSES.ONLINE,
           playersOnline: isNowOffline ? 0 : Math.round(s.maxPlayers * 0.4),
           cpuUsage: isNowOffline ? 0 : 35,
           ping: isNowOffline ? 0 : 45,
           uptimeHours: isNowOffline ? 0 : 1,
         };
-      })
+      }),
     );
 
     const logEntry = {
       id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString('uk-UA'),
-      level: isNowOffline ? 'CRITICAL' : 'INFO',
+      timestamp: new Date().toLocaleTimeString("uk-UA"),
+      level: isNowOffline ? "CRITICAL" : "INFO",
       serverId: target.id,
       serverName: target.name,
       message: isNowOffline
@@ -230,10 +254,10 @@ export function App() {
   const handleBulkHealthCheck = () => {
     const logEntry = {
       id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString('uk-UA'),
-      level: 'INFO',
-      serverId: 'global-check',
-      serverName: 'Кластерний діагност',
+      timestamp: new Date().toLocaleTimeString("uk-UA"),
+      level: "INFO",
+      serverId: "global-check",
+      serverName: "Кластерний діагност",
       message: `Запущено глобальну перевірку цілісності та пінґ усіх гео-розподілених кластерів.`,
     };
     setLogs((prev) => [logEntry, ...prev]);
@@ -242,8 +266,11 @@ export function App() {
     setServers((prev) =>
       prev.map((s) => ({
         ...s,
-        ping: s.status === SERVER_STATUSES.OFFLINE ? 0 : Math.max(15, Math.round(s.ping + (Math.random() - 0.5) * 5)),
-      }))
+        ping:
+          s.status === SERVER_STATUSES.OFFLINE
+            ? 0
+            : Math.max(15, Math.round(s.ping + (Math.random() - 0.5) * 5)),
+      })),
     );
   };
 
@@ -280,18 +307,25 @@ export function App() {
           {/* Колонка карток серверів (5 колонок на великих екранах) */}
           <div className="lg:col-span-5 space-y-3">
             <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-              <span>Знайдено серверних нод: <strong className="text-slate-200">{filteredServers.length}</strong></span>
+              <span>
+                Знайдено серверних нод:{" "}
+                <strong className="text-slate-200">
+                  {filteredServers.length}
+                </strong>
+              </span>
               <span>Клацніть для перегляду</span>
             </div>
 
             {filteredServers.length === 0 ? (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-500">
-                <p className="text-sm">За заданими критеріями пошуку вузлів не знайдено.</p>
+                <p className="text-sm">
+                  За заданими критеріями пошуку вузлів не знайдено.
+                </p>
                 <button
                   onClick={() => {
-                    setSelectedRegion('all');
-                    setStatusFilter('all');
-                    setSearchQuery('');
+                    setSelectedRegion("all");
+                    setStatusFilter("all");
+                    setSearchQuery("");
                     setCriticalOnly(false);
                   }}
                   className="mt-3 text-xs text-cyan-400 hover:underline cursor-pointer"
@@ -335,10 +369,15 @@ export function App() {
       <footer className="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            STEM-проєкт: «Веб-панель моніторингу доступності, навантаження та розподіленого статусу ігрових серверів»
+            STEM-проєкт: «Веб-панель моніторингу доступності, навантаження та
+            розподіленого статусу ігрових серверів»
           </div>
           <div>
-            Розробник: <span className="text-slate-400 font-medium">Слободяник Євгеній Олександрович</span> (ІПЗ-23, ПГ-8)
+            Розробник:{" "}
+            <span className="text-slate-400 font-medium">
+              Слободяник Євгеній Олександрович
+            </span>{" "}
+            (ІПЗ-33, ПГ-8)
           </div>
         </div>
       </footer>
